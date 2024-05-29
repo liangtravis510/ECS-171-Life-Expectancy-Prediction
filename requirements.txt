@@ -3,5 +3,5 @@ streamlit
 seaborn
 matplotlib
 pandas
-scrikit-learn
+scikit-learn
 streamlit-navigation-bar
