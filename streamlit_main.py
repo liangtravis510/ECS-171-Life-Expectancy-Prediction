@@ -66,7 +66,7 @@ with st.sidebar.header('Set Parameters'):
 
 # Load dataset
 def get_dataset():
-    data = pd.read_csv("E:/ECS-171-Project/Life Expectancy Data.csv")
+    data = pd.read_csv("Life Expectancy Data.csv")
     return data
 
 life_df = get_dataset()
