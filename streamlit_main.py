@@ -90,8 +90,12 @@ df.update(pd.DataFrame(numeric_data, columns=df.select_dtypes(include=[np.number
 # One-hot encoding for categorical variables
 df = pd.get_dummies(df, columns=['Status'], drop_first=True)
 
+# target variable
 y = df['Life Expectancy']
+# Features
 X = df.drop(['Life Expectancy', 'Country', 'Year'], axis=1)
+
+# Split data
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=(split_size/100), random_state=42)
 
 if st.button('Estimate Life Expectancy'):
