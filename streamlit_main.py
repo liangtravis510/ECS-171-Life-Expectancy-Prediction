@@ -31,7 +31,7 @@ st.set_page_config(page_title='Life Expectancy Estimator Tool', layout='wide')
 st.title('LIFE EXPECTANCY ESTIMATOR TOOL')
 st.markdown('---')
 st.write('''
-         This app uses a Linear Regression model to estimate life expectancy based on features and data obtained from World Bank Open Data.
+         This app uses a Linear Regression model to estimate life expectancy based on features and data obtained the World Health Organization (WHO) on Kaggle
          
 Please fill in the attributes below and adjust the model's parameters to the desired values.
 
