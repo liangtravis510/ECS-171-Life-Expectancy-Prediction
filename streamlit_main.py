@@ -72,31 +72,71 @@ def get_dataset():
 life_df = get_dataset()
 df = life_df.copy()
 
-# Data preprocessing
-df.columns = df.columns.str.strip()
-# Define specific columns to keep capitalized
-specific_columns = ['GDP', 'HIV/AIDS', 'BMI']
+selected_cols = ["Alcohol", "Adult Mortality", "Hepatitis B", "Measles ", " BMI ",
+                 "Polio", "Total expenditure", "Diphtheria ", " HIV/AIDS",
+                 "GDP", " thinness  1-19 years", "Schooling", "infant deaths", "Life expectancy ", "Status"]
+selected_data = df[selected_cols]
+selected_data.columns = ["Alcohol", "Adult Mortality", "Hepatitis B", "Measles", "BMI",
+                         "Polio", "Total Expenditure", "Diphtheria", "HIV/AIDS",
+                         "GDP", "Thinness 1-19 Years", "Schooling", "Infant Deaths", "Life Expectancy", "Status"]
 
-# Capitalize the first letter of each feature name and keep specific columns capitalized
-df.columns = [col if col in specific_columns else col.title() for col in df.columns]
-df.rename(columns={'Gdp': 'GDP', 'Hiv/Aids': 'HIV/AIDS', 'Bmi': 'BMI'}, inplace=True)
+# Transform selected columns
+transformed_data = selected_data.apply({"Adult Mortality": np.sqrt,
+                                     "Life Expectancy": lambda x: x,
+                                     "Alcohol": np.sqrt,
+                                     "Hepatitis B": lambda x: np.log(100 - x),
+                                     "Measles": lambda x: np.log(x + 0.1),
+                                     "BMI": lambda x: np.log(100 - x),
+                                     "Polio": lambda x: np.log(100 - x),
+                                     "Total Expenditure": lambda x: x,
+                                     "Diphtheria": lambda x: np.log(100 - x),
+                                     "HIV/AIDS": np.log,
+                                     "GDP": np.log,
+                                     "Thinness 1-19 Years": np.log,
+                                     "Schooling": lambda x: x,
+                                     "Status": lambda x: x,
+                                     "Infant Deaths": lambda x: x})
+
+# Remove rows with outliers
+def find_outliers(data):
+  q1 = np.nanpercentile(data, 25)
+  q3 = np.nanpercentile(data, 75)
+  iqr = q3 - q1
+  min_threshold = q1 - 1.5*iqr
+  max_threshold = q3 + 1.5*iqr
+  return list( np.where((data < min_threshold) | (data > max_threshold))[0] )
+
+outliers = []
+for i, col in transformed_data.items():
+  if i != "Status":
+      outliers += find_outliers(col)
+  else:
+      outliers += list( np.where(df["Status"] == "Developed")[0] )
+
+
+data_no_outliers = transformed_data.drop(index=outliers).reset_index(drop=True).drop('Status', axis=1)
 
 # Replace missing values with mean
-numeric_data = df.select_dtypes(include=[np.number])
-imputer = SimpleImputer(strategy='mean')
-numeric_data = imputer.fit_transform(numeric_data)
-df.update(pd.DataFrame(numeric_data, columns=df.select_dtypes(include=[np.number]).columns))
+imputer = SimpleImputer(strategy="mean").set_output(transform="pandas")
+new_data = imputer.fit_transform(data_no_outliers)
 
-# One-hot encoding for categorical variables
-df = pd.get_dummies(df, columns=['Status'], drop_first=True)
+# Perform 80/20 train/test split
+train_data, test_data = train_test_split(new_data, train_size=split_size/100, random_state=1)
+train_data, val_data = train_test_split(train_data, train_size=(split_size/100), random_state=1)
 
-# target variable
-y = df['Life Expectancy']
 # Features
-X = df.drop(['Life Expectancy', 'Country', 'Year'], axis=1)
+vars = ["Alcohol", "Adult Mortality", "Hepatitis B", "Measles", "BMI",
+                         "Polio", "Total Expenditure", "Diphtheria", "HIV/AIDS",
+                         "GDP", "Thinness 1-19 Years", "Schooling", "Infant Deaths"]
 
-# Split data
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=(split_size/100), random_state=42)
+X_test = test_data[vars]
+y_test = test_data["Life Expectancy"]
+
+# Prepare training and validation sets
+X_train = train_data[vars]
+X_val = val_data[vars]
+y_train = train_data["Life Expectancy"]
+y_val = val_data["Life Expectancy"]
 
 if st.button('Estimate Life Expectancy'):
     
@@ -133,12 +173,8 @@ if st.button('Estimate Life Expectancy'):
     st.write('Based on the user input, the estimated Life Expectancy is:')
     st.info(predictions[0])
     st.write('Model Performance:')
-    st.write(f'R^2 score: {model_score}')
     st.write('Error (MSE) for testing:')
     st.info(mse)
-    st.write(f"Root Mean Squared Error (RMSE) on test set: {rmse:.4f}")
-    st.write('Error (MSE) for training:')
-
     st.markdown('---')
     show_data = st.checkbox("See the raw data?")
     if show_data:
