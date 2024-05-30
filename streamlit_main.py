@@ -176,6 +176,4 @@ if st.button('Estimate Life Expectancy'):
     st.write('Error (MSE) for testing:')
     st.info(mse)
     st.markdown('---')
-    show_data = st.checkbox("See the raw data?")
-    if show_data:
-        st.write(df)
+    
