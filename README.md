@@ -1,4 +1,4 @@
-# Life Expectancy Calculator
+# Life Expectancy Model
 ## Installation
 Open a terminal and install the following dependencies
 ``` bash
