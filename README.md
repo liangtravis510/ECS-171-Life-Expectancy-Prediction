@@ -21,13 +21,11 @@ healthcare access, environmental conditions, and more.
 Therefore, it is important to understand these factors in
 order to design effective public health policies. Using a
 dataset provided by the World Health Organization, we
-will develop a comprehensive model to estimate life ex pectancy. 
+will develop a comprehensive model to estimate life expectancy. 
 Through various machine-learning techniques,
 we will be able to develop a model that is both easy
 to interpret as well as being accurate in predicting life
 expectancy
-
-
 
 ## Collaboration
 ### Nghi Dao - Team Leader, Writer, and Coder
