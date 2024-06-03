@@ -1,19 +1,4 @@
-# import streamlit as st
-# from streamlit_navigation_bar import st_navbar
-# from pages import home as pg
 
-# st.set_page_config(page_title='Life Expectancy Estimator Tool', layout='wide')
-
-# pages = ['Home', 'Developed Countries', 'Developing Countries']
-# page = st_navbar(pages)
-
-# function = {'Home': pg.show_home}
-
-# go_to_page = function.get(page)
-# if go_to_page:
-#     go_to_page()
-
-# ------------------------------------------------
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -27,7 +12,7 @@ import seaborn as sns
 # Theme settings
 st.set_page_config(page_title='Life Expectancy Estimator Tool', layout='wide')
 
-# Title and description
+# Title and description   
 st.title('LIFE EXPECTANCY ESTIMATOR TOOL')
 st.markdown('---')
 st.write('''
@@ -44,16 +29,24 @@ st.header('Input Attributes')
 att_adult_mortality = st.slider('Adult Mortality', min_value=0, max_value=24, value=10, step=1)
 att_infant_deaths = st.slider('Infant Deaths', min_value=0, max_value=55, value=10, step=1)
 att_alcohol = st.slider('Alcohol Consumption', min_value=0.0, max_value=4.3, value=0.01, step=0.1)
-att_hepatitis_b = st.slider('Hepatitis B Immunization (%)', min_value=0.0, max_value=5.0, value=3.1, step=0.1)
-att_measles = st.slider('Measles Immunization', min_value=0.0, max_value=11.7, value=5.0, step=0.1)
+att_hepatitis_b = st.slider('Hepatitis B Immunized Rates (%)', min_value=0.0, max_value=5.0, value=3.1, step=0.1)
+att_measles = st.slider('Measles Immunized Rates', min_value=0.0, max_value=11.7, value=5.0, step=0.1)
 att_bmi = st.slider('BMI', min_value=0.0, max_value=5.0, value=1.0, step=0.1)
-att_polio = st.slider('Polio Immunization (%)', min_value=0.0, max_value=5.0, value=1.0, step=0.1)
+att_polio = st.slider('Polio Immunized Rates(%)', min_value=0.0, max_value=5.0, value=1.0, step=0.1)
 att_total_expenditure = st.slider('Total Expenditure (% of GDP)', min_value=0.0, max_value=13.0, value=8.16, step=0.1)
-att_diphtheria = st.slider('Diphtheria Immunization (%)', min_value=0.0, max_value=5.0, value=3.2, step=0.01)
+att_diphtheria = st.slider('Diphtheria Immunized Rates(%)', min_value=0.0, max_value=5.0, value=3.2, step=0.01)
 att_hiv_aids = st.slider('HIV/AIDS deaths (per 1000 lives)', min_value=0.0, max_value=3.0, value=0.1, step=0.1)
 att_gdp = st.slider('GDP (10000)', min_value=0.0, max_value=12.0, value=2.1, step=0.1)
 att_thinness_1_19_years = st.slider('Thinness 1-19 years (%)', min_value=0.0, max_value=3.0, value=1.1, step=0.1)
 att_schooling = st.slider('Schooling (years)', min_value=0, max_value=18, value=10, step=1)
+
+
+word = "Developed Countries"
+on = st.toggle("Developing Countries", "Developed Countries")
+if on:
+    word = "Developing Countries"
+else:
+    word = "Developed Countries"
 
 user_input = np.array([att_adult_mortality, att_infant_deaths, att_alcohol, att_hepatitis_b, 
                        att_measles, att_bmi, att_polio, att_total_expenditure, 
@@ -106,23 +99,26 @@ def find_outliers(data):
   max_threshold = q3 + 1.5*iqr
   return list( np.where((data < min_threshold) | (data > max_threshold))[0] )
 
-outliers = []
-for i, col in transformed_data.items():
-  if i != "Status":
-      outliers += find_outliers(col)
-  else:
-      outliers += list( np.where(df["Status"] == "Developed")[0] )
+def get_filtered_data(remove_status):
+    outliers = []
+    for i, col in transformed_data.items():
+      if i != "Status":
+          outliers += find_outliers(col)
+      else:
+          outliers += list( np.where(df["Status"] == remove_status)[0] )
+    
+    
+    data_no_outliers = transformed_data.drop(index=outliers).reset_index(drop=True).drop('Status', axis=1)
+    # Replace missing values with mean
+    imputer = SimpleImputer(strategy="mean")
+    new_data = pd.DataFrame(imputer.fit_transform(data_no_outliers), columns=data_no_outliers.columns)
 
+    train_data, test_data = train_test_split(new_data, train_size=0.8, random_state=1)
+    train_data, val_data = train_test_split(train_data, train_size=0.8, random_state=1)
 
-data_no_outliers = transformed_data.drop(index=outliers).reset_index(drop=True).drop('Status', axis=1)
+    return train_data, val_data, test_data
 
-# Replace missing values with mean
-imputer = SimpleImputer(strategy="mean").set_output(transform="pandas")
-new_data = imputer.fit_transform(data_no_outliers)
-
-# Perform 80/20 train/test split
-train_data, test_data = train_test_split(new_data, train_size=split_size/100, random_state=1)
-train_data, val_data = train_test_split(train_data, train_size=(split_size/100), random_state=1)
+train_data, val_data, test_data = get_filtered_data(remove_status=word)
 
 # Features
 vars = ["Alcohol", "Adult Mortality", "Hepatitis B", "Measles", "BMI",
