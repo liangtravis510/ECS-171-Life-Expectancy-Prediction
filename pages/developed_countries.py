@@ -17,12 +17,13 @@ st.markdown('---')
 
 # Input Attributes
 st.header('Input Attributes')
-att_adult_mortality = st.slider('Adult Mortality', min_value=0, max_value=24, value=10, step=1)
-att_hiv_aids = st.slider('HIV/AIDS deaths (per 1000 lives)', min_value=0.0, max_value=3.0, value=0.1, step=0.1)
-att_schooling = st.slider('Schooling (years)', min_value=0, max_value=18, value=10, step=1)
+att_adult_mortality = st.slider('Adult Mortality (per 1000 people)', min_value=0, max_value=24, value=10, step=1)
+att_GDP = st.slider('GDP (per 10000$ USD)', min_value=0.0, max_value=12.0, value=2.1, step=0.1)
+att_thinness_1_19_years = st.slider('Thinness 1-19 years (%)', min_value=0.0, max_value=3.0, value=1.1, step=0.1)
 
-user_input = np.array([att_adult_mortality, att_hiv_aids,
-                       att_schooling])
+
+
+user_input = np.array([att_adult_mortality, att_GDP, att_thinness_1_19_years])
 
 # Sidebar - Set Parameters
 with st.sidebar.header('Set Parameters'):
@@ -30,7 +31,7 @@ with st.sidebar.header('Set Parameters'):
 
 # Load dataset
 def get_dataset():
-    data = pd.read_csv("Developing_Life_Expectancy.csv")
+    data = pd.read_csv("Life Expectancy Data.csv")
     return data
 
 life_df = get_dataset()
@@ -61,6 +62,8 @@ transformed_data = selected_data.apply({"Adult Mortality": np.sqrt,
                                      "Status": lambda x: x,
                                      "Infant Deaths": lambda x: x})
 
+
+
 # Remove rows with outliers
 def find_outliers(data):
   q1 = np.nanpercentile(data, 25)
@@ -70,27 +73,29 @@ def find_outliers(data):
   max_threshold = q3 + 1.5*iqr
   return list( np.where((data < min_threshold) | (data > max_threshold))[0] )
 
-outliers = []
-for i, col in transformed_data.items():
-  if i != "Status":
-      outliers += find_outliers(col)
-  else:
-      outliers += list( np.where(df["Status"] == "Developed")[0] )
+def get_filtered_data(remove_status):
+    outliers = []
+    for i, col in transformed_data.items():
+      if i != "Status":
+          outliers += find_outliers(col)
+      else:
+          outliers += list( np.where(df["Status"] == remove_status)[0] )
+    
+    
+    data_no_outliers = transformed_data.drop(index=outliers).reset_index(drop=True).drop('Status', axis=1)
+    # Replace missing values with mean
+    imputer = SimpleImputer(strategy="mean")
+    new_data = pd.DataFrame(imputer.fit_transform(data_no_outliers), columns=data_no_outliers.columns)
+
+    train_data, test_data = train_test_split(new_data, train_size=0.8, random_state=1)
+    train_data, val_data = train_test_split(train_data, train_size=0.8, random_state=1)
+
+    return train_data, val_data, test_data
+
+train_data, val_data, test_data = get_filtered_data(remove_status="Developing")
 
 
-data_no_outliers = transformed_data.drop(index=outliers).reset_index(drop=True).drop('Status', axis=1)
-
-# Replace missing values with mean
-imputer = SimpleImputer(strategy="mean").set_output(transform="pandas")
-new_data = imputer.fit_transform(data_no_outliers)
-
-# Perform 80/20 train/test split
-train_data, test_data = train_test_split(new_data, train_size=split_size/100, random_state=1)
-train_data, val_data = train_test_split(train_data, train_size=(split_size/100), random_state=1)
-
-# Features
-vars = ["Adult Mortality","HIV/AIDS", "Schooling",]
-
+vars = ["Adult Mortality", "GDP", "Thinness 1-19 Years"]
 X_test = test_data[vars]
 y_test = test_data["Life Expectancy"]
 
@@ -108,9 +113,9 @@ if st.button('Estimate Life Expectancy'):
     
     # Align user_input with X_train columns
     user_input_df = pd.DataFrame([user_input], columns=[
-        'Adult Mortality','HIV/AIDS', 
-        'Schooling'
+        'Adult Mortality', 'GDP', 'Thinness 1-19 Years'
     ])
+    
     # Add missing dummy columns for 'Status'
     for col in X_train.columns:
         if col not in user_input_df.columns:
@@ -118,16 +123,12 @@ if st.button('Estimate Life Expectancy'):
     
     # Reorder user_input_df columns to match X_train
     user_input_df = user_input_df[X_train.columns]
-
+    
     # Make predictions
     predictions = model.predict(user_input_df)
     model_score = model.score(X_test, y_test)
     mse = mean_squared_error(y_test, model.predict(X_test))
-    rmse = np.sqrt(mse)
 
-    mse_train = mean_squared_error(y_train, model.predict(X_train))
-    rmse_train = np.sqrt(mse_train)
-    
     # Display results
     st.markdown('**Result - Prediction!**')
     st.write('Based on the user input, the estimated Life Expectancy is:')
@@ -136,4 +137,3 @@ if st.button('Estimate Life Expectancy'):
     st.write('Error (MSE) for testing:')
     st.info(mse)
     st.markdown('---')
-    

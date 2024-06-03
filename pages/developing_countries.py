@@ -26,9 +26,9 @@ st.markdown('---')
 # Input Attributes
 st.header('Input Attributes')
 att_adult_mortality = st.slider('Adult Mortality', min_value=0, max_value=24, value=10, step=1)
-att_hepatitis_b = st.slider('Hepatitis B Immunization (%)', min_value=0.0, max_value=5.0, value=3.1, step=0.1)
-att_measles = st.slider('Measles Immunization', min_value=0.0, max_value=11.7, value=5.0, step=0.1)
-att_diphtheria = st.slider('Diphtheria Immunization (%)', min_value=0.0, max_value=5.0, value=3.2, step=0.01)
+att_hepatitis_b = st.slider('Hepatitis B Immunized Rate (%)', min_value=0.0, max_value=5.0, value=3.1, step=0.1)
+att_measles = st.slider('Measles Immunized Rate', min_value=0.0, max_value=11.7, value=5.0, step=0.1)
+att_diphtheria = st.slider('Diphtheria Immunized Rate(%)', min_value=0.0, max_value=5.0, value=3.2, step=0.01)
 att_hiv_aids = st.slider('HIV/AIDS deaths (per 1000 lives)', min_value=0.0, max_value=3.0, value=0.1, step=0.1)
 att_gdp = st.slider('GDP (10000)', min_value=0.0, max_value=12.0, value=2.1, step=0.1)
 att_schooling = st.slider('Schooling (years)', min_value=0, max_value=18, value=10, step=1)
@@ -84,23 +84,27 @@ def find_outliers(data):
   max_threshold = q3 + 1.5*iqr
   return list( np.where((data < min_threshold) | (data > max_threshold))[0] )
 
-outliers = []
-for i, col in transformed_data.items():
-  if i != "Status":
-      outliers += find_outliers(col)
-  else:
-      outliers += list( np.where(df["Status"] == "Developed")[0] )
+def get_filtered_data(remove_status):
+    outliers = []
+    for i, col in transformed_data.items():
+      if i != "Status":
+          outliers += find_outliers(col)
+      else:
+          outliers += list( np.where(df["Status"] == remove_status)[0] )
+    
+    
+    data_no_outliers = transformed_data.drop(index=outliers).reset_index(drop=True).drop('Status', axis=1)
+    # Replace missing values with mean
+    imputer = SimpleImputer(strategy="mean")
+    new_data = pd.DataFrame(imputer.fit_transform(data_no_outliers), columns=data_no_outliers.columns)
 
+    train_data, test_data = train_test_split(new_data, train_size=0.8, random_state=1)
+    train_data, val_data = train_test_split(train_data, train_size=0.8, random_state=1)
 
-data_no_outliers = transformed_data.drop(index=outliers).reset_index(drop=True).drop('Status', axis=1)
+    return train_data, val_data, test_data
 
-# Replace missing values with mean
-imputer = SimpleImputer(strategy="mean").set_output(transform="pandas")
-new_data = imputer.fit_transform(data_no_outliers)
+train_data, val_data, test_data = get_filtered_data(remove_status="Developed")
 
-# Perform 80/20 train/test split
-train_data, test_data = train_test_split(new_data, train_size=split_size/100, random_state=1)
-train_data, val_data = train_test_split(train_data, train_size=(split_size/100), random_state=1)
 
 # Features
 vars = ["Adult Mortality", "Hepatitis B", "Measles", "Diphtheria", "HIV/AIDS","GDP", "Schooling",]
@@ -139,10 +143,6 @@ if st.button('Estimate Life Expectancy'):
     predictions = model.predict(user_input_df)
     model_score = model.score(X_test, y_test)
     mse = mean_squared_error(y_test, model.predict(X_test))
-    rmse = np.sqrt(mse)
-
-    mse_train = mean_squared_error(y_train, model.predict(X_train))
-    rmse_train = np.sqrt(mse_train)
     
     # Display results
     st.markdown('**Result - Prediction!**')
