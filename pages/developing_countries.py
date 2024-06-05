@@ -26,7 +26,7 @@ st.markdown('---')
 # Input Attributes
 st.header('Input Attributes')
 att_adult_mortality = st.slider('Adult Mortality', min_value=0, max_value=24, value=10, step=1)
-att_hepatitis_b = st.slider('Hepatitis B Immunized Rate (%)', min_value=0.0, max_value=5.0, value=3.1, step=0.1)
+att_hepatitis_b = st.slider('Hepatitis B Unimmunized Rate (%)', min_value=0.0, max_value=5.0, value=3.1, step=0.1)
 att_measles = st.slider('Measles Unimmunized rates(%)', min_value=0.0, max_value=11.7, value=5.0, step=0.1)
 att_diphtheria = st.slider('Diphtheria Unimmunized rates(%)', min_value=0.0, max_value=5.0, value=3.2, step=0.01)
 att_hiv_aids = st.slider('HIV/AIDS deaths (per 1000 lives)', min_value=0.0, max_value=3.0, value=0.1, step=0.1)
